@@ -7,7 +7,7 @@ modified: 2015-01-01
 comments: true
 ---
 
-It is often useful to be able to call BLAS routines directly from Cython. Doing so avoids calling the corresponding NumPy functions (which would incur a performance penalty of running interpreted code and type and shape checking) as well as re-implementing linear algebra operations in Cython (which will likely be both incorrect /and/ slower).
+It is often useful to be able to call [BLAS](http://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) routines directly from Cython. Doing so avoids calling the corresponding NumPy functions (which would incur a performance penalty of running interpreted code and type and shape checking) as well as re-implementing linear algebra operations in Cython (which will likely be both incorrect _and_ slower).
 
 ### Existing Cython BLAS wrappers
 Correspondingly, there are several ways of doing so.
@@ -44,7 +44,7 @@ cpdef double run_blas_dot(double[::1] x,
     return ddot(dim, x_ptr, 1, y_ptr, 1)
 {% endhighlight %}
 
-Declaring level 2 and level 3 functions is a little bit more tricky as we need to take care of the various flags passed into the routines. Taking `DGEMV` (double matrix-vector product) as an example, we need:
+Declaring level 2 and level 3 functions is a little bit trickier as we need to take care of the various flags passed into the routines. Taking `DGEMV` (double matrix-vector product) as an example, we need:
 {% highlight python %}
 cdef extern from 'cblas.h':
     ctypedef enum CBLAS_ORDER:
@@ -101,3 +101,9 @@ cpdef run_blas_dgemv(double[:, ::1] A,
           y_ptr,
           1)
 {% endhighlight %}
+And that's it: good enough for quick and dirty projects.
+
+### Real-world examples
+
+For some good examples of using Cython BLAS bindings in anger, [sklearn](https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/linear_model/cd_fast.pyx) uses the BLAS headers approach;
+[statsmodels](https://github.com/statsmodels/statsmodels/blob/master/statsmodels/tsa/kalmanf/kalman_loglike.pyx) and [gensim](https://github.com/piskvorky/gensim/blob/master/gensim/models/word2vec_inner.pyx) extract function pointers out of `scipy`. 
