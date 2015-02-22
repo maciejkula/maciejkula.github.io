@@ -40,11 +40,11 @@ It is this overhead that makes using `lil_matrix` (or `dok_matrix`, which uses a
 
 ### The array module to the rescue
 
-What we really want, then, is a list-like object that stores numerical data efficiently. This is precisely what the [array module](https://docs.python.org/2/library/array.html) gives us. Arrays are like lists in that they support appending, but like numpy arrays in that they store their data directly in a typed buffer (and so are similar to a C++ `vector` or a Java `ArrayList`).
+What we really want, then, is a list-like object that stores numerical data efficiently. This is precisely what the [array module](https://docs.python.org/2/library/array.html) provides. The `array.array` objects are like lists in that they support appending, but like numpy arrays in that they store their data directly in a typed buffer (and so are similar to a C++ `vector` or a Java `ArrayList`).
 
 What is more, because they support the [buffer protocol](https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/), it is possible to create a numpy array from an `array.array` _without copying the underlying data_.
 
-The following is a simple implementation of an incremental sparse matrix constructor using the `array` module:
+This is perfect for implementing an incremental sparse array constructor. The following is a simple example:
 
 {% highlight python %}
 import array
@@ -120,6 +120,6 @@ def test_incremental_coo():
     assert coo.data.base is mat.data
 {% endhighlight %}
 
-The same approach applies to incrementally constructing a CSR matrix. Assuming that data come in order a row at a time, it's easy to incrementally grow the three CSR data arrays, and convert them to a `csr_matrix` without copying the data.
+The same approach applies to incrementally constructing a CSR matrix. Assuming that data come in order a row at a time, it's easy to incrementally grow the three CSR data arrays, and convert them to a `csr_matrix` without copying the underlying memory.
 
 (One caveat here is that `array` overallocates space when it grows. It is quite likely, therefore, that the actual memory usage will be greater than is necessary. Still, this overhead is small relative to the overhead of using an untyped Python container.)
