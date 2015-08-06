@@ -17,4 +17,4 @@ Slides:
 <script async class="speakerdeck-embed" data-id="345e7a34337a4b5eb06741470f495714" data-ratio="1.77777777777778" src="//speakerdeck.com/assets/embed.js"></script>
 
 Talk:
-<iframe width="560" height="315" src="https://www.youtube.com/embed/PJZt699mhJs" frameborder="0" allowfullscreen></iframe>
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/PJZt699mhJs/0.jpg)](http://www.youtube.com/watch?v=PJZt699mhJs "Speeding up search with locality sensitive hashing")
