@@ -6,6 +6,7 @@
 
 * Engineering                                                  :@engineering:
 ** DONE Building an autodifferentiation library
+   CLOSED: [2018-07-18 Wed 17:38]
 :PROPERTIES:
 :EXPORT_FILE_NAME: building-an-autodiff-library
 :END:
