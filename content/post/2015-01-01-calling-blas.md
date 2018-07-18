@@ -23,16 +23,16 @@ If these projects fit your requirements, great! You can read no further. In my c
 Declaring BLAS functions is a straightforward application of the Cython `cdef extern` machinery.
 
 Getting the BLAS level 1 double inner product function is very straightforward:
-{% highlight python %}
+```python
 cdef extern from 'cblas.h':
     double ddot 'cblas_ddot'(int N,
                              double* X, int incX,
                              double* Y, int incY) nogil
-{% endhighlight %}
+```
 This gives a function that takes the length the vectors `N`, the pointers to the first element of `X` and `Y`, and their strides `incX` and `incY`.
 
 Calling it is also very easy:
-{% highlight python %}
+```python
 cpdef double run_blas_dot(double[::1] x,
                           double[::1] y,
                           int dim):
@@ -42,10 +42,10 @@ cpdef double run_blas_dot(double[::1] x,
     cdef double* y_ptr = &y[0]
 
     return ddot(dim, x_ptr, 1, y_ptr, 1)
-{% endhighlight %}
+```
 
 Declaring level 2 and level 3 functions is a little bit trickier as we need to take care of the various flags passed into the routines. Taking `DGEMV` (double matrix-vector product) as an example, we need:
-{% highlight python %}
+```python
 cdef extern from 'cblas.h':
     ctypedef enum CBLAS_ORDER:
         CblasRowMajor
@@ -60,7 +60,7 @@ cdef extern from 'cblas.h':
                              double alpha, double* A, int lda,
                              double* X, int incX,
                              double beta, double* Y, int incY) nogil
-{% endhighlight %}
+```
 The first two `ctypedef`s give us the flags governing the matrix-vector product operation:
 
 - `CBLAS_ORDER` determines whether the matrix `A` uses row-major or column-major storage (C and Fortran arrays in NumPy parlance), and
@@ -75,7 +75,7 @@ The final lines gives us the actual function signature. To call it, we need:
 - the strides of the `X` and `Y` arrays.
 
 To call it:
-{% highlight python %}
+```python
 cpdef run_blas_dgemv(double[:, ::1] A,
                      double[::1] x,
                      double[::1] y,
@@ -100,7 +100,7 @@ cpdef run_blas_dgemv(double[:, ::1] A,
           beta,
           y_ptr,
           1)
-{% endhighlight %}
+```
 And that's it: good enough for quick and dirty projects.
 
 ### Real-world examples
