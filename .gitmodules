@@ -2,3 +2,6 @@
 	path = public
 	url = git@github.com:maciejkula/maciejkula.github.io.git
 	branch = master
+[submodule "themes/hugo-xmin"]
+	path = themes/hugo-xmin
+	url = https://github.com/maciejkula/hugo-xmin
