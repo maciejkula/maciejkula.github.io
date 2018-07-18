@@ -6,7 +6,7 @@
     <description>Recent content in Posts on Mostly Engineering</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 18 Jul 2018 16:53:37 +0100</lastBuildDate>
+    <lastBuildDate>Wed, 18 Jul 2018 17:38:00 +0100</lastBuildDate>
     
 	<atom:link href="https://maciejkula.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,7 +14,7 @@
     <item>
       <title>Building an autodifferentiation library</title>
       <link>https://maciejkula.github.io/2018/07/18/building-an-autodifferentiation-library/</link>
-      <pubDate>Wed, 18 Jul 2018 16:53:37 +0100</pubDate>
+      <pubDate>Wed, 18 Jul 2018 17:38:00 +0100</pubDate>
       
       <guid>https://maciejkula.github.io/2018/07/18/building-an-autodifferentiation-library/</guid>
       <description>This blog post originally appeared on Medium
