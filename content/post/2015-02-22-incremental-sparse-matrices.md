@@ -21,14 +21,14 @@ This works very well for small matrices, but for matrices with hundreds of milli
 
 Looking into the [source](https://github.com/scipy/scipy/blob/master/scipy/sparse/lil.py) for `lil_matrix`, we can see that it stores the matrix elements in a numpy array (of `dtype` `object`) of Python lists:
 
-{% highlight python %}
+```python
 self.shape = (M,N)
 self.rows = np.empty((M,), dtype=object)
 self.data = np.empty((M,), dtype=object)
 for i in range(M):
     self.rows[i] = []
     self.data[i] = []
-{% endhighlight %}
+```
 
 These lists are then populated with column indices and entry values.
 
@@ -46,7 +46,7 @@ What is more, because they support the [buffer protocol](https://jakevdp.github.
 
 This is perfect for implementing an incremental sparse array constructor. The following is a simple example:
 
-{% highlight python %}
+```python
 import array
 import numpy as np
 import scipy.sparse as sp
@@ -97,10 +97,10 @@ class IncrementalCOOMatrix(object):
     def __len__(self):
 
         return len(self.data)
-{% endhighlight %}
+```
 
 A quick test to show that it works (and that the data are not copied when converting to a `coo_matrix`):
-{% highlight python %}
+```python
 def test_incremental_coo():
 
     shape = 10, 10
@@ -118,7 +118,7 @@ def test_incremental_coo():
     assert coo.row.base is mat.rows
     assert coo.col.base is mat.cols
     assert coo.data.base is mat.data
-{% endhighlight %}
+```
 
 The same approach applies to incrementally constructing a CSR matrix. Assuming that data come in order a row at a time, it's easy to incrementally grow the three CSR data arrays, and convert them to a `csr_matrix` without copying the underlying memory.
 

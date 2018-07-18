@@ -13,8 +13,10 @@ In the talk, I presented the intuition behind locality sensitive hashing and dis
 
 If you are interested in the details, please see my blog post on the Lyst [developers blog](http://developers.lyst.com/2015/07/10/ann/). The recording of the talk and slides are embedded below.
 
+Talk:
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+  <iframe src="//www.youtube.com/embed/PJZt699mhJs?start=4865" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" allowfullscreen="" title="YouTube Video"></iframe>
+</div>
+
 Slides:
 <script async class="speakerdeck-embed" data-id="345e7a34337a4b5eb06741470f495714" data-ratio="1.77777777777778" src="//speakerdeck.com/assets/embed.js"></script>
-
-Talk:
-[![Speeding up search with locality sensitive hashing](http://img.youtube.com/vi/PJZt699mhJs/0.jpg)](http://www.youtube.com/watch?v=PJZt699mhJs "Speeding up search with locality sensitive hashing")
