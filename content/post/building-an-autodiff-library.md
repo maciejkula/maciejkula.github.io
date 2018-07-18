@@ -1,9 +1,9 @@
 +++
 title = "Building an autodifferentiation library"
 author = ["maciej"]
-lastmod = 2018-07-18T16:28:27+01:00
+lastmod = 2018-07-18T16:53:37+01:00
 categories = ["engineering"]
-draft = true
+draft = false
 weight = 2001
 +++
 

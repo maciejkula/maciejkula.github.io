@@ -5,7 +5,7 @@
 #+hugo_auto_set_lastmod: t
 
 * Engineering                                                  :@engineering:
-** TODO Building an autodifferentiation library
+** DONE Building an autodifferentiation library
 :PROPERTIES:
 :EXPORT_FILE_NAME: building-an-autodiff-library
 :END:
