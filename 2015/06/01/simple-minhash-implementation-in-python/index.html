@@ -1,37 +1,98 @@
-<!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Simple MinHash implementation in Python | Mostly Engineering</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="stylesheet" href="/css/fonts.css" />
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content='text/html; charset=utf-8' http-equiv='content-type' />
+
+  <title>Simple MinHash implementation in Python - Mostly Engineering</title>
+  <meta content='Simple MinHash implementation in Python - Mostly Engineering' property='title' />
+  <meta content='Simple MinHash implementation in Python - Mostly Engineering' property='og:title' />
+
+
+<meta property="og:description" content="MinHash is a simple but effective algorithm for estimating set similarity using the Jaccard index. Both the Wikipedia entry and this blog post are good explanations of how it works.
+MinHash is attractive because it allows us to decide how similar two sets are without having to enumerate all of their elements. If we want to know how many users that performed action $A$ also performed action $B$, we can compare the MinHashes of the two sets instead of keeping track of multiple sets of millions of user ids." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://maciejkula.github.io/2015/06/01/simple-minhash-implementation-in-python/" />
+
+
+<meta property="article:published_time" content="2015-06-01T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2015-06-01T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.44" />
+
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600" rel="stylesheet">
+<style type="text/css">/*https://coolors.co/afd5aa-f0f2ef-a69f98-3d3d3d-8c6057*/
+:root {
+  --main-color: #8C6056; 
+  --secondary-color: #AFD5AA;
+  --logo-text-color: #fff;
+  --body-text-color: #3d3d3d;
+  --heading-text-color: #383838;
+  --background-color: #fff;
+}</style>
+<link href='/css/tachyons.min.css' rel="stylesheet">
+<link href='/css/styles.css' rel="stylesheet">
+
+
+<link rel="icon" 
+ 
+  href='/favicon.ico'
+
+type="image/x-icon"/>
+
+<link href='/feed.xml' rel="alternate" type="application/atom+xml" title="Mostly Engineering" />
+
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-33073489-2', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+</head>
+<body class="global-font">
+  <nav class=" flex-ns justify-between border-box pa3 pl3-l pr2-l mt1 mt0-ns" id="navbar">
+  <div class="flex">
+    <a class="f4 fw6 ttu no-underline dim bg-main-color pv1 ph2 br2" id="site-title" href='/' title="Home">Mostly Engineering</a>
+  </div>
+  
+  <div class=" flex-ns mt2 mt0-ns pv1">
     
-  </head>
-
-  <body>
-    <nav>
-    <ul class="menu">
-      
-      <li><a href="/">Home</a></li>
-      
-      <li><a href="/categories/">Categories</a></li>
-      
-      <li><a href="/tags/">Tags</a></li>
-      
-      <li><a href="/index.xml">Subscribe</a></li>
-      
-    </ul>
-    <hr/>
-    </nav>
-
-<div class="article-meta">
-<h1><span class="title">Simple MinHash implementation in Python</span></h1>
-<h2 class="date">2015/06/01</h2>
-</div>
-
-<main>
-<script type="text/javascript"
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='/' title="Home">Home</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='/about/' title="About">About</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='https://github.com/maciejkula/' title="Github">Github</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='https://twitter.com/Maciej_Kula' title="Twitter">Twitter</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='/index.xml' title="Subscribe">Subscribe</a>
+    
+  </div>
+  
+</nav>
+  
+<main class="center mv4 content-width ph3">
+  <div class="f3 fw6 heading-color heading-font post-title">Simple MinHash implementation in Python</div>
+  <p class="silver f6 mt1 mb4 post-meta">
+    <time>01 Jun 2015</time> 
+     | 
+    
+    
+    tags: [ <a href='/tags/online' class="link silver">online</a> <a href='/tags/metrics' class="link silver">metrics</a>  ]
+    
+  </p>
+  <div class="lh-copy post-content"><script type="text/javascript"
       src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
   </script>
 
@@ -71,29 +132,31 @@
                             <span style="color:#e6db74">&#39;between MinHashes with the same hash &#39;</span>
                             <span style="color:#e6db74">&#39;functions.&#39;</span>)
 
-        <span style="color:#66d9ef">return</span> (self<span style="color:#f92672">.</span>_hashes <span style="color:#f92672">==</span> other<span style="color:#f92672">.</span>_hashes)<span style="color:#f92672">.</span>sum() <span style="color:#f92672">/</span> float(self<span style="color:#f92672">.</span>_k)</code></pre></div>
+        <span style="color:#66d9ef">return</span> (self<span style="color:#f92672">.</span>_hashes <span style="color:#f92672">==</span> other<span style="color:#f92672">.</span>_hashes)<span style="color:#f92672">.</span>sum() <span style="color:#f92672">/</span> float(self<span style="color:#f92672">.</span>_k)</code></pre></div></div>
 </main>
-
-  <footer>
-  <script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-
-
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-	ga('create', 'UA-33073489-2', 'auto');
-	
-	ga('send', 'pageview');
-}
-</script>
+ 
 
 
 
-<div id="disqus_thread"></div>
+
+
+
+
+
+<div class="pagination tc tr-l db fixed-l bottom-2-l right-2-l mb3 mb0-l">
+  
+<a id="scroll-to-top" class="f6 o-0 link br2 ph2 pv1 mb1 bg-main-color pointer" onclick="topFunction()" style="color: #fff; visibility: hidden; display: none; transition: opacity .5s, visibility .5s;" title="back to top">back to top</a>
+<br>
+  <p class="mb0 mt2">
+  <a href="https://maciejkula.github.io/2015/02/22/incremental-construction-of-sparse-matrices/">prev post</a>
+  <a href="https://maciejkula.github.io/2015/08/06/my-approximate-nearest-neighbour-talk-at-europython-2015/">next post</a>
+  </p>
+</div>
+
+  <footer class="content-width mt0 mt5-l mb4 f6 center ph3 gray tc tl-l">
+
+  
+  <div id="disqus_thread"></div>
 <script>
     var disqus_config = function () {
     
@@ -113,13 +176,56 @@ if (!doNotTrack) {
 </script>
 <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 <a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  
 
+  <hr class="dn db-l ml0-l gray w3"><br>
+  Powered by <a href="https://gohugo.io/" target="_blank" class="link gray dim">Hugo</a>, based on the <a href="https://github.com/lingxz/er" target="_blank" class="link gray dim">Er</a> theme. <br>
+  
+</footer>
 
   
-  <hr/>
-  Maciej Kula | <a href="https://github.com/maciejkula">Github</a> | <a href="https://twitter.com/Maciej_Kula">Twitter</a>
+
+
+
+
+
+
+<script type="text/javascript">
+var prevScrollpos = window.pageYOffset;
+window.onscroll = function() {
+  var currentScrollPos = window.pageYOffset;
+
   
-  </footer>
-  </body>
+
+  
+  if (document.body.scrollTop > 1000 || document.documentElement.scrollTop > 1000) {
+      document.getElementById("scroll-to-top").style.display = "inline";
+      document.getElementById("scroll-to-top").style.visibility = "visible";
+      document.getElementById("scroll-to-top").style.opacity = "1";
+  } else {
+      document.getElementById("scroll-to-top").style.visibility = "hidden";
+      document.getElementById("scroll-to-top").style.opacity = "0";
+  }
+  
+  prevScrollpos = currentScrollPos;
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0; 
+  document.documentElement.scrollTop = 0; 
+}
+
+
+
+
+
+
+
+</script>
+
+
+
+
+</body>
 </html>
-
