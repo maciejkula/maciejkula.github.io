@@ -92,17 +92,13 @@ if (!doNotTrack) {
     tags: [ <a href='/tags/online' class="link silver">online</a> <a href='/tags/metrics' class="link silver">metrics</a>  ]
     
   </p>
-  <div class="lh-copy post-content"><script type="text/javascript"
-      src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-  </script>
+  <div class="lh-copy post-content"><p><a href="http://en.wikipedia.org/wiki/MinHash">MinHash</a> is a simple but effective algorithm for estimating set similarity using the <a href="http://en.wikipedia.org/wiki/Jaccard_index">Jaccard index</a>. Both the Wikipedia entry and <a href="http://robertheaton.com/2014/05/02/jaccard-similarity-and-minhash-for-winners/">this blog post</a> are good explanations of how it works.</p>
 
-<p><a href="http://en.wikipedia.org/wiki/MinHash">MinHash</a> is a simple but effective algorithm for estimating set similarity using the <a href="http://en.wikipedia.org/wiki/Jaccard_index">Jaccard index</a>. Both the Wikipedia entry and <a href="http://robertheaton.com/2014/05/02/jaccard-similarity-and-minhash-for-winners/">this blog post</a> are good explanations of how it works.</p>
+<p>MinHash is attractive because it allows us to decide how similar two sets are without having to enumerate all of their elements. If we want to know how many users that performed action $A$ also performed action $B$, we can compare the MinHashes of the two sets instead of keeping track of multiple sets of millions of user ids. This is not only faster, but also has a fixed memory footprint.</p>
 
-<p>MinHash is attractive because it allows us to decide how similar two sets are without having to enumerate all of their elements. If we want to know how many users that performed action <code>$A$</code> also performed action <code>$B$</code>, we can compare the MinHashes of the two sets instead of keeping track of multiple sets of millions of user ids. This is not only faster, but also has a fixed memory footprint.</p>
+<p>MinHash is also extremely simple to implement: all we need is a set of $k$ hash functions, and a way of keeping track of the minimum value encountered for each hash function. The $k$ parameter gives us a way of trading off precision and efficiency: we get higher accuracy with higher $k$, but it takes longer to process new data points and the hashes themselves occupy more memory.</p>
 
-<p>MinHash is also extremely simple to implement: all we need is a set of <code>$k$</code> hash functions, and a way of keeping track of the minimum value encountered for each hash function. The <code>$k$</code> parameter gives us a way of trading off precision and efficiency: we get higher accuracy with higher <code>$k$</code>, but it takes longer to process new data points and the hashes themselves occupy more memory.</p>
-
-<p>The following Python implementation uses the built-in <code>hash</code> function and <code>$k$</code> bitwise XOR masks for hashing, and is sufficiently fast even for high <code>$k$</code> (unless you really have a lot of data).</p>
+<p>The following Python implementation uses the built-in hash function and $k$ bitwise XOR masks for hashing, and is sufficiently fast even for high $k$ (unless you really have a lot of data).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MinHash</span>(object):
 
     <span style="color:#66d9ef">def</span> __init__(self, k, seed<span style="color:#f92672">=</span><span style="color:#ae81ff">10</span>):
@@ -156,6 +152,7 @@ if (!doNotTrack) {
   <footer class="content-width mt0 mt5-l mb4 f6 center ph3 gray tc tl-l">
 
   
+  
   <div id="disqus_thread"></div>
 <script>
     var disqus_config = function () {
@@ -176,6 +173,7 @@ if (!doNotTrack) {
 </script>
 <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 <a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  
   
 
   <hr class="dn db-l ml0-l gray w3"><br>
@@ -225,6 +223,39 @@ function topFunction() {
 </script>
 
 
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css">
+<script>
+  renderMathInElement(document.body,
+    {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false},
+        ]
+    }
+  );
+
+  var inlineMathArray = document.querySelectorAll("script[type='math/tex']");
+  for (var i = 0; i < inlineMathArray.length; i++) {
+    var inlineMath = inlineMathArray[i];
+    var tex = inlineMath.innerText || inlineMath.textContent;
+    var replaced = document.createElement("span");
+    replaced.innerHTML = katex.renderToString(tex, {displayMode: false});
+    inlineMath.parentNode.replaceChild(replaced, inlineMath);
+  }
+
+  var displayMathArray = document.querySelectorAll("script[type='math/tex; mode=display']");
+  for (var i = 0; i < displayMathArray.length; i++) {
+    var displayMath = displayMathArray[i];
+    var tex = displayMath.innerHTML;
+    var replaced = document.createElement("span");
+    replaced.innerHTML = katex.renderToString(tex.replace(/%.*/g, ''), {displayMode: true});
+    displayMath.parentNode.replaceChild(replaced, displayMath);
+  }
+</script>
 
 
 </body>
