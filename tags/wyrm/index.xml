@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Engineering on Mostly Engineering</title>
-    <link>https://maciejkula.github.io/categories/engineering/</link>
-    <description>Recent content in Engineering on Mostly Engineering</description>
+    <title>Wyrm on Mostly Engineering</title>
+    <link>https://maciejkula.github.io/tags/wyrm/</link>
+    <description>Recent content in Wyrm on Mostly Engineering</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Wed, 18 Jul 2018 17:38:00 +0100</lastBuildDate>
     
-	<atom:link href="https://maciejkula.github.io/categories/engineering/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://maciejkula.github.io/tags/wyrm/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -21,16 +21,6 @@
 Popular general-purpose auto-differentiation frameworks like PyTorch or TensorFlow are very capable, and, for the most part, there is little need for writing something more specialized.
 Nevertheless, I have recently started writing my own autodiff package. This blog post describes what I’ve learned along the way. Think of this as a poor-man’s version of a Julia Evans blog post.
 Note that there are many blog posts describing the mechanics of autodifferentiation much better than I could, so I skip the explanations here.</description>
-    </item>
-    
-    <item>
-      <title>Don&#39;t use explicit feedback recommenders</title>
-      <link>https://maciejkula.github.io/2018/07/19/dont-use-explicit-feedback-recommenders/</link>
-      <pubDate>Thu, 19 Jul 2018 19:02:00 +0100</pubDate>
-      
-      <guid>https://maciejkula.github.io/2018/07/19/dont-use-explicit-feedback-recommenders/</guid>
-      <description>Back in January, I gave a talk at the London RecSys Meetup about why explicit feedback recommender models are inferior to implicit feedback models in the vast majority of cases.
-The key argument is that what people choose to rate or not rate expresses a more fundamental preference than what the ratings is. Ignoring that preference and focusing on the gradations of preference within ranked items is the wrong choice.</description>
     </item>
     
   </channel>

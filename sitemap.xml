@@ -4,7 +4,12 @@
   
   <url>
     <loc>https://maciejkula.github.io/2018/07/18/building-an-autodifferentiation-library/</loc>
-    <lastmod>2018-07-18T17:38:23+01:00</lastmod>
+    <lastmod>2018-07-19T15:39:06+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://maciejkula.github.io/2018/07/19/dont-use-explicit-feedback-recommenders/</loc>
+    <lastmod>2018-07-19T19:02:28+01:00</lastmod>
   </url>
   
   <url>
@@ -29,7 +34,7 @@
   
   <url>
     <loc>https://maciejkula.github.io/</loc>
-    <lastmod>2018-07-18T17:38:23+01:00</lastmod>
+    <lastmod>2018-07-19T15:39:06+01:00</lastmod>
   </url>
   
   <url>
@@ -61,7 +66,7 @@
   
   <url>
     <loc>https://maciejkula.github.io/categories/engineering/</loc>
-    <lastmod>2018-07-18T17:38:23+01:00</lastmod>
+    <lastmod>2018-07-19T15:39:06+01:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -79,7 +84,7 @@
   
   <url>
     <loc>https://maciejkula.github.io/post/</loc>
-    <lastmod>2018-07-18T17:38:23+01:00</lastmod>
+    <lastmod>2018-07-19T15:39:06+01:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -104,6 +109,12 @@
   <url>
     <loc>https://maciejkula.github.io/tags/talks/</loc>
     <lastmod>2015-08-06T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://maciejkula.github.io/tags/wyrm/</loc>
+    <lastmod>2018-07-19T15:39:06+01:00</lastmod>
     <priority>0</priority>
   </url>
   
