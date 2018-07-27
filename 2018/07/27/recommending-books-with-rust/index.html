@@ -1,0 +1,1111 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content='text/html; charset=utf-8' http-equiv='content-type' />
+
+  <title>Recommending books (with Rust) - Mostly Engineering</title>
+  <meta content='Recommending books (with Rust) - Mostly Engineering' property='title' />
+  <meta content='Recommending books (with Rust) - Mostly Engineering' property='og:title' />
+
+
+<meta property="og:description" content="In this post, we&rsquo;re going to build a sequence-based recommender system in Rust: a sytem that accepts a person&rsquo;s reading history as input, and outputs recommendations on what to read next.
+Building systems like this &ndash; like much of machine learning and data science &ndash; is normally the province of Python. The combination of numpy, pandas, and other libraries that build on them makes doing data science in Python a breeze." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://maciejkula.github.io/2018/07/27/recommending-books-with-rust/" />
+
+
+<meta property="article:published_time" content="2018-07-27T09:17:00-07:00"/>
+
+<meta property="article:modified_time" content="2018-07-27T09:18:32-07:00"/>
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.44" />
+
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600" rel="stylesheet">
+<style type="text/css">/*https://coolors.co/afd5aa-f0f2ef-a69f98-3d3d3d-8c6057*/
+:root {
+  --main-color: #8C6056; 
+  --secondary-color: #AFD5AA;
+  --logo-text-color: #fff;
+  --body-text-color: #3d3d3d;
+  --heading-text-color: #383838;
+  --background-color: #fff;
+}</style>
+<link href='/css/tachyons.min.css' rel="stylesheet">
+<link href='/css/styles.css' rel="stylesheet">
+
+
+<link rel="icon" 
+ 
+  href='/favicon.ico'
+
+type="image/x-icon"/>
+
+<link href='/feed.xml' rel="alternate" type="application/atom+xml" title="Mostly Engineering" />
+
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-33073489-2', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+</head>
+<body class="global-font">
+  <nav class=" flex-ns justify-between border-box pa3 pl3-l pr2-l mt1 mt0-ns" id="navbar">
+  <div class="flex">
+    <a class="f4 fw6 ttu no-underline dim bg-main-color pv1 ph2 br2" id="site-title" href='/' title="Home">Mostly Engineering</a>
+  </div>
+  
+  <div class=" flex-ns mt2 mt0-ns pv1">
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='/' title="Home">Home</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='/about/' title="About">About</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='https://github.com/maciejkula/' title="Github">Github</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='https://twitter.com/Maciej_Kula' title="Twitter">Twitter</a>
+    
+      <a class="link dim dark-gray f6 dib mr2 mr3-l ttu tracked" href='/index.xml' title="Subscribe">Subscribe</a>
+    
+  </div>
+  
+</nav>
+  
+<main class="center mv4 content-width ph3">
+  <div class="f3 fw6 heading-color heading-font post-title">Recommending books (with Rust)</div>
+  <p class="silver f6 mt1 mb4 post-meta">
+    <time>27 Jul 2018</time> 
+     | 
+    
+    categories: [ <a href='/categories/engineering' class="link silver">engineering</a>  ]
+    
+    
+  </p>
+  <div class="lh-copy post-content">
+
+<p>In this post, we&rsquo;re going to build a sequence-based recommender system in Rust: a sytem that accepts a person&rsquo;s reading history as input, and outputs recommendations on what to read next.</p>
+
+<p>Building systems like this &ndash; like much of machine learning and data science &ndash; is normally the province of Python. The combination of numpy, pandas, and other libraries that build on them makes doing data science in Python a breeze.</p>
+
+<p>Nevertheless, there are advantages of using statically typed programming languages for some machine learning tasks: help from the compiler, better self-documentation capacity, and speed of the resulting code. This is part of the motivation behind building <a href="https://github.com/tensorflow/swift">Tensorflow for Swift</a>: modern statically typed programming languages with good ergonomics, an expressive type system, and value types bring a lot of advantages.</p>
+
+<p>In this blog post, I hope to show that these advantages do not come at the cost of verbose code and complexity that distracts from the main task. In many ways, Rust comes very close to the ergonomics and expressiveness of Python.</p>
+
+<p>You can read this post like a Jupyter notebook: a series of steps that builds into a complete program. To see the end result, jump to the appendix, or have a look at the <a href="https://github.com/maciejkula/hugo-blog/tree/master/code/goodbooks-recommender/">Github repository</a>.</p>
+
+<h2 id="setting-up-a-project">Setting up a project</h2>
+
+<p>Rust projects follow a certain structure, and we can set up a new project using <code>cargo</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cargo new --bin goodbooks-recommender</code></pre></div>
+<p>This will set up a new directory (and a git repository), containing a <code>Cargo.toml</code> file with information about the package, and a <code>main.rs</code> file that contains our code. To run the code, run</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cargo run</code></pre></div>
+<p>This will download the dependencies, compile the code, and run the binary all in one. (We will want to run <code>cargo run --release</code> once we start fitting models: this turns on the optimization passes in the compile step.)</p>
+
+<h2 id="getting-the-data">Getting the data</h2>
+
+<p>To train the model, we&rsquo;ll use the <a href="https://github.com/zygmuntz/goodbooks-10k">Goodbooks-10k dataset</a>: a dataset of approximately 6 million ratings over 10,000 books from over 50,000 users, derived from the popular Goodreads service.</p>
+
+<p>The first dependency we are going to use is <code>reqwest</code>: a crate similar to Python&rsquo;s <code>requests</code> that will allow us to easily download the data we need. The second is <code>failure</code>, a crate that makes dealing with errors easier.</p>
+
+<h3 id="downloading-data">Downloading data</h3>
+
+<p>With its help, we can start defining our download function:</p>
+
+<p><a id="org22ba2dc"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Need to import a couple of things from
+</span><span style="color:#75715e">// the standard library
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">use</span> std::fs::File;
+<span style="color:#66d9ef">use</span> std::io::BufWriter;
+<span style="color:#66d9ef">use</span> std::path::Path;
+
+<span style="color:#e6db74">/// Download file from `url` and save it to `destination`.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">download</span>(url: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, destination: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>)
+            -&gt; Result<span style="color:#f92672">&lt;</span>(), failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#75715e">// Don&#39;t do anything if we already have the file.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> destination.exists() {
+        <span style="color:#66d9ef">return</span> Ok(())
+    }
+
+    <span style="color:#75715e">// Otherwise, create a new file.
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// Because each of the following operations
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// can fail (returns a result type), we follow
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// them with the `?` operator. If the result
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// is an error, it will exit from the function
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// early, propagating the error upwards; if
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the operation completed successfully, we get
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the result instead.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> file <span style="color:#f92672">=</span> File::create(destination)<span style="color:#f92672">?</span>;
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> writer <span style="color:#f92672">=</span> BufWriter::new(file);
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> response <span style="color:#f92672">=</span> reqwest::get(url)<span style="color:#f92672">?</span>;
+    response.copy_to(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> writer)<span style="color:#f92672">?</span>;
+
+    Ok(())
+}
+</code></pre></div>
+<p>With this, we can write a short function that downloads both the ratings file and a file that contains metadata on the books from the dataset:</p>
+
+<p><a id="orgdcc3c2a"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#e6db74">/// Download ratings and metadata both.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">download_data</span>(ratings_path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>, books_path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>) {
+    <span style="color:#66d9ef">let</span> ratings_url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://github.com/zygmuntz/\
+</span><span style="color:#e6db74">                       goodbooks-10k/raw/master/ratings.csv&#34;</span>;
+    <span style="color:#66d9ef">let</span> books_url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://github.com/zygmuntz/\
+</span><span style="color:#e6db74">                     goodbooks-10k/raw/master/books.csv&#34;</span>;
+
+    download(<span style="color:#f92672">&amp;</span>ratings_url,
+             ratings_path).expect(<span style="color:#e6db74">&#34;Could not download ratings&#34;</span>);
+    download(<span style="color:#f92672">&amp;</span>books_url,
+             books_path).expect(<span style="color:#e6db74">&#34;Could not download metadata&#34;</span>);
+}
+</code></pre></div>
+<p>The ratings file looks like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">user_id,book_id
+9,8
+15,398
+15,275
+37,7173
+34,380</code></pre></div>
+<h3 id="parsing">Parsing</h3>
+
+<p>We have two options for parsing the resulting CSV files. One is to parse things manually; the other, to use Rust&rsquo;s amazing serialization/deserialization capabilities and the <a href="https://crates.io/crates/csv"><code>csv</code> crate</a>.</p>
+
+<p>The heart of Rust&rsquo;s serialization ecosystem lies in the <a href="https://serde.rs/"><code>serde</code> crate</a>. It provides traits that allow structs to be seamlessly serialized and deserialized across a variety for formats. We&rsquo;ll derive those on a <code>WishlistEntry</code> struct to be able to read it from the CSV file:</p>
+
+<p><a id="org7962a11"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Importing this allows us to autoderive
+</span><span style="color:#75715e">// the serialization traits.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#[macro_use]</span>
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> serde_derive;
+
+<span style="color:#75715e">// This is where we get the serde traits from.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> serde;
+
+<span style="color:#75715e">// An implementation of the serde encoders/decoders
+</span><span style="color:#75715e">// to and from a JSON. We&#39;ll need
+</span><span style="color:#75715e">// these later.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> serde_json;
+
+<span style="color:#75715e">#[derive(Debug, Serialize, Deserialize)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">WishlistEntry</span> {
+    user_id: <span style="color:#66d9ef">usize</span>,
+    book_id: <span style="color:#66d9ef">usize</span>,
+}
+</code></pre></div>
+<p>After importing the <code>csv</code> crate we&rsquo;re ready to write the deserialize function:</p>
+
+<p><a id="orga3c7e72"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> csv;
+
+<span style="color:#e6db74">/// Deserialize from file at `path` into a vector of
+</span><span style="color:#e6db74">/// `WishlistEntry`.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_ratings</span>(path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>)
+               -&gt; Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>WishlistEntry<span style="color:#f92672">&gt;</span>, failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> reader <span style="color:#f92672">=</span> csv::Reader::from_path(path)<span style="color:#f92672">?</span>;
+
+    <span style="color:#75715e">// We specify the type of the deserialized entity
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// via a type annotation. Otherwise, the compiler has
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// no way of knowing what sort of thing we want to
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// deserialize!
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// We also do a further trick where instead of deserializing
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// into a vector of results, we deserialize into a result with
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// a vector.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> entries: Vec<span style="color:#f92672">&lt;</span>WishlistEntry<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> reader.deserialize()
+        .collect::<span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>, _<span style="color:#f92672">&gt;&gt;</span>()<span style="color:#f92672">?</span>;
+
+    Ok(entries)
+}
+</code></pre></div>
+<p>We also want to deserialize the metadata. We&rsquo;re only really interested in the book id and title, as this is what will allow us to make and evaluate recommendations based on titles rather than book ids.</p>
+
+<p>As before, we define a struct and a corresponding deserialize function. This time, we are going to return two mappings instead of a vector: the first mapping book ids to book titles, the second book titles to book ids.</p>
+
+<p><a id="org2666e67"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Debug, Deserialize, Serialize)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Book</span> {
+    book_id: <span style="color:#66d9ef">usize</span>,
+    title: String
+}
+
+<span style="color:#75715e">// We&#39;ll use the stdlib hashmap for the mapping.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">use</span> std::collections::HashMap;
+
+<span style="color:#e6db74">/// Deserialize from file at `path` into the book
+</span><span style="color:#e6db74">/// mappings.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_books</span>(path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>)
+   -&gt; Result<span style="color:#f92672">&lt;</span>(HashMap<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span>, String<span style="color:#f92672">&gt;</span>,
+              HashMap<span style="color:#f92672">&lt;</span>String, <span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>), failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> reader <span style="color:#f92672">=</span> csv::Reader::from_path(path)<span style="color:#f92672">?</span>;
+
+    <span style="color:#66d9ef">let</span> entries: Vec<span style="color:#f92672">&lt;</span>Book<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> reader.deserialize::<span style="color:#f92672">&lt;</span>Book<span style="color:#f92672">&gt;</span>()
+        .collect::<span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>, _<span style="color:#f92672">&gt;&gt;</span>()<span style="color:#f92672">?</span>;
+
+    <span style="color:#75715e">// We can simply iterate over the entries and collect
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// them into a different data structure. This is not
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the most efficient solution but it will do for now.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> id_to_title: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span>, String<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> entries
+        .iter()
+        .map(<span style="color:#f92672">|</span>book<span style="color:#f92672">|</span> (book.book_id, book.title.clone()))
+        .collect();
+    <span style="color:#66d9ef">let</span> title_to_id: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span>String, <span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> entries
+        .iter()
+        .map(<span style="color:#f92672">|</span>book<span style="color:#f92672">|</span> (book.title.clone(), book.book_id))
+        .collect();
+
+    Ok((id_to_title, title_to_id))
+}
+</code></pre></div>
+<h2 id="fitting-a-model">Fitting a model</h2>
+
+<p>Now that we have read the data, we can start thinking about what models to fit, and how to fit them.</p>
+
+<p>The <a href="https://github.com/maciejkula/sbr-rs"><code>sbr</code></a> package implements two recommender models:</p>
+
+<ul>
+<li>an LSTM-based model, and</li>
+<li>an exponential moving average (EWMA) model.</li>
+</ul>
+
+<p>The first is much more powerful: it implements a full LSTM model, taking a user&rsquo;s history of past interactions and trying to predict their next action.</p>
+
+<p>The second is simpler computationally: the user representation at time \(t\), \(u_t\) , is simply an exponentially weighted average of \(i_t\), the ($d$-dimensional) embeddings of items the user interacted with at time \(t\):
+\[
+   u_t = (1 - \sigma(\alpha))u_{t-1} + \sigma(\alpha)i_t,
+\]
+where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie between 0 and via the sigmoid function \(\sigma\).</p>
+
+<p>Despite its simplicity, the model seems to perform fairly well on the Movielens dataset, and we&rsquo;re going to use it for this example.</p>
+
+<h3 id="setting-up-hyperparameters">Setting up hyperparameters</h3>
+
+<p>The first thing we need to do is to write a function that will set up all the hyperparameters of the model:</p>
+
+<p><a id="org94e46d9"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> sbr;
+
+<span style="color:#66d9ef">use</span> sbr::models::ewma::{Hyperparameters, ImplicitEWMAModel};
+<span style="color:#66d9ef">use</span> sbr::models::{Loss, Optimizer};
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">build_model</span>(num_items: <span style="color:#66d9ef">usize</span>) -&gt; <span style="color:#a6e22e">ImplicitEWMAModel</span> {
+    <span style="color:#66d9ef">let</span> hyperparameters <span style="color:#f92672">=</span> Hyperparameters::new(num_items, <span style="color:#ae81ff">128</span>)
+        .embedding_dim(<span style="color:#ae81ff">32</span>)
+        .learning_rate(<span style="color:#ae81ff">0.16</span>)
+        .l2_penalty(<span style="color:#ae81ff">0.0004</span>)
+        .loss(Loss::WARP)
+        .optimizer(Optimizer::Adagrad)
+        .num_epochs(<span style="color:#ae81ff">10</span>)
+        .num_threads(<span style="color:#ae81ff">1</span>);
+
+    hyperparameters.build()
+}
+</code></pre></div>
+<h3 id="preparing-data">Preparing data</h3>
+
+<p>The second is to convert the <code>WishlistEntry</code> objects into <code>sbr</code>&rsquo;s <a href="https://docs.rs/sbr/0.4.0/sbr/data/struct.Interactions.html"><code>Interaction</code></a> objects:</p>
+
+<p><a id="org9524419"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> sbr::data::{Interaction, Interactions};
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">build_interactions</span>(data: <span style="color:#66d9ef">&amp;</span>[WishlistEntry]) -&gt; <span style="color:#a6e22e">Interactions</span> {
+    <span style="color:#75715e">// If the collection is empty, `max` doesn&#39;t exist. This
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// is why we get an Option back, which we then unwrap.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> num_users <span style="color:#f92672">=</span> data
+        .iter()
+        .map(<span style="color:#f92672">|</span>x<span style="color:#f92672">|</span> x.user_id)
+        .max()
+        .unwrap() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">let</span> num_items <span style="color:#f92672">=</span> data
+        .iter()
+        .map(<span style="color:#f92672">|</span>x<span style="color:#f92672">|</span> x.book_id)
+        .max()
+        .unwrap() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> interactions <span style="color:#f92672">=</span> Interactions::new(num_users,
+                                             num_items);
+
+    <span style="color:#75715e">// There are no timestamps in the interaction data, but
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// we make use of the fact that they are sorted by time.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (idx, datum) <span style="color:#66d9ef">in</span> data.iter().enumerate() {
+        interactions.push(
+            Interaction::new(datum.user_id,
+                             datum.book_id,
+                             idx)
+        );
+    }
+
+    interactions
+}
+</code></pre></div>
+<h3 id="fitting">Fitting</h3>
+
+<p>The model fitting itself is easy: we&rsquo;ve set up the data and hyperparameters, and all that is left is to fit the model, making sure we have a train-test split to evaluate performance:</p>
+
+<p><a id="org930b43a"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// We need to import the rand crate.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> rand;
+<span style="color:#66d9ef">use</span> rand::SeedableRng;
+
+<span style="color:#75715e">// We perform a split where the train and test
+</span><span style="color:#75715e">// sets are disjoint on the user dimension: no
+</span><span style="color:#75715e">// single user is in both.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">use</span> sbr::data::user_based_split;
+<span style="color:#66d9ef">use</span> sbr::OnlineRankingModel;
+
+<span style="color:#66d9ef">use</span> sbr::evaluation::mrr_score;
+
+<span style="color:#e6db74">/// Fit the model.
+</span><span style="color:#e6db74">///
+</span><span style="color:#e6db74">/// If successful, return the MRR on the test set.
+</span><span style="color:#e6db74">/// Otherwise, return an error.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">fit</span>(model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> ImplicitEWMAModel,
+       data: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Interactions</span>)
+       -&gt; Result<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">f32</span>, failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#75715e">// Use a fixed seed for repeatable results.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> rng <span style="color:#f92672">=</span> rand::XorShiftRng::from_seed([<span style="color:#ae81ff">42</span>; <span style="color:#ae81ff">16</span>]);
+
+    <span style="color:#66d9ef">let</span> (train, test) <span style="color:#f92672">=</span> user_based_split(data,
+                                         <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> rng,
+                                         <span style="color:#ae81ff">0.2</span>);
+
+    model.fit(<span style="color:#f92672">&amp;</span>train.to_compressed())<span style="color:#f92672">?</span>;
+
+    <span style="color:#66d9ef">let</span> mrr <span style="color:#f92672">=</span> mrr_score(model, <span style="color:#f92672">&amp;</span>test.to_compressed())<span style="color:#f92672">?</span>;
+
+    Ok(mrr)
+}
+</code></pre></div>
+<p>On my machine, this takes about a minute and a half, and achieves an MRR of 0.09. This is an OK result. To improve it, we could perform a hyperparameter search &mdash; the <code>Hyperparameters</code> struct has a <a href="https://docs.rs/sbr/0.4.0/sbr/models/ewma/struct.Hyperparameters.html#method.random"><code>random</code></a> constructor that facilitates this. For now, however, we&rsquo;ll stick with this what we have.</p>
+
+<p>Once we have the model, we&rsquo;ll want to save it for future use. Again, we&rsquo;ll use the <code>serde</code> library to do so:</p>
+
+<p><a id="org77278a5"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">serialize_model</span>(model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">ImplicitEWMAModel</span>,
+                   path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>) -&gt; Result<span style="color:#f92672">&lt;</span>(), failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> file <span style="color:#f92672">=</span> File::create(path)<span style="color:#f92672">?</span>;
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> writer <span style="color:#f92672">=</span> BufWriter::new(file);
+
+    Ok(serde_json::to_writer(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> writer, model)<span style="color:#f92672">?</span>)
+}
+</code></pre></div>
+<p>Wiring all the bits together gives</p>
+
+<p><a id="org6dfbf0f"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#e6db74">/// Download training data and build a model.
+</span><span style="color:#e6db74">///
+</span><span style="color:#e6db74">/// We&#39;ll use this function to power the `fit`
+</span><span style="color:#e6db74">/// subcommand of our command line tool.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main_build</span>() {
+
+    <span style="color:#66d9ef">let</span> ratings_path <span style="color:#f92672">=</span> Path::new(<span style="color:#e6db74">&#34;ratings.csv&#34;</span>);
+    <span style="color:#66d9ef">let</span> books_path <span style="color:#f92672">=</span> Path::new(<span style="color:#e6db74">&#34;books.csv&#34;</span>);
+    <span style="color:#66d9ef">let</span> model_path <span style="color:#f92672">=</span> Path::new(<span style="color:#e6db74">&#34;model.json&#34;</span>);
+
+    <span style="color:#75715e">// Exit early if we already have a model.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> model_path.exists() {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Model already fitted.&#34;</span>);
+        <span style="color:#66d9ef">return</span> ();
+    }
+
+    download_data(ratings_path, books_path);
+
+    <span style="color:#66d9ef">let</span> ratings <span style="color:#f92672">=</span> deserialize_ratings(ratings_path).unwrap();
+    <span style="color:#66d9ef">let</span> (id_to_title,
+         title_to_id) <span style="color:#f92672">=</span> deserialize_books(books_path).unwrap();
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Deserialized {} ratings.&#34;</span>, ratings.len());
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Deserialized {} books.&#34;</span>, id_to_title.len());
+
+    <span style="color:#66d9ef">let</span> interactions <span style="color:#f92672">=</span> build_interactions(<span style="color:#f92672">&amp;</span>ratings);
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> model <span style="color:#f92672">=</span> build_model(interactions.num_items());
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Fitting...&#34;</span>);
+    <span style="color:#66d9ef">let</span> mrr <span style="color:#f92672">=</span> fit(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> model, <span style="color:#f92672">&amp;</span>interactions)
+        .expect(<span style="color:#e6db74">&#34;Unable to fit model.&#34;</span>);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Fit model with MRR of {:.2}&#34;</span>, mrr);
+
+    serialize_model(<span style="color:#f92672">&amp;</span>model, <span style="color:#f92672">&amp;</span>model_path)
+        .expect(<span style="color:#e6db74">&#34;Unable to serialize model.&#34;</span>);
+}
+</code></pre></div>
+<h2 id="getting-predictions">Getting predictions</h2>
+
+<p>We need two bits here: (1) deserializing the model, and (2) getting predictions.</p>
+
+<p>For the first, the following should suffice:</p>
+
+<p><a id="org7bfd96e"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> std::io::BufReader;
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_model</span>() -&gt; Result<span style="color:#f92672">&lt;</span>ImplicitEWMAModel,
+                                 failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> file <span style="color:#f92672">=</span> File::open(<span style="color:#e6db74">&#34;model.json&#34;</span>)<span style="color:#f92672">?</span>;
+    <span style="color:#66d9ef">let</span> reader <span style="color:#f92672">=</span> BufReader::new(file);
+
+    <span style="color:#66d9ef">let</span> model <span style="color:#f92672">=</span> serde_json::from_reader(reader)<span style="color:#f92672">?</span>;
+
+    Ok(model)
+}
+</code></pre></div>
+<p>For the second, we&rsquo;ll accept a sequence of book titles as input, translate to indices, get predictions, and translate back to book titles.</p>
+
+<p><a id="org3dbfef8"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">predict</span>(input_titles: <span style="color:#66d9ef">&amp;</span>[String],
+           model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">ImplicitEWMAModel</span>)
+           -&gt; Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span>, failure::Error<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">let</span> (id_to_title,
+         title_to_id) <span style="color:#f92672">=</span> deserialize_books(
+        <span style="color:#f92672">&amp;</span>Path::new(<span style="color:#e6db74">&#34;books.csv&#34;</span>)
+    ).unwrap();
+
+    <span style="color:#75715e">// Let&#39;s first check if the inputs are valid.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> title <span style="color:#66d9ef">in</span> input_titles {
+        <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>title_to_id.contains_key(title) {
+            println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;No such title, ignoring: {}&#34;</span>, title);
+        }
+    }
+
+    <span style="color:#75715e">// Map the titles to indices.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> input_indices: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> input_titles
+        .iter()
+        .filter_map(<span style="color:#f92672">|</span>title<span style="color:#f92672">|</span> title_to_id.get(title))
+        .cloned()
+        .collect();
+    <span style="color:#66d9ef">let</span> indices_to_score: Vec<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span>
+        (<span style="color:#ae81ff">0</span>..id_to_title.len()).collect();
+
+    <span style="color:#75715e">// Get the user representation.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> user <span style="color:#f92672">=</span> model.user_representation(<span style="color:#f92672">&amp;</span>input_indices)<span style="color:#f92672">?</span>;
+    <span style="color:#75715e">// Get the actual predictions.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> predictions <span style="color:#f92672">=</span> model.predict(<span style="color:#f92672">&amp;</span>user, <span style="color:#f92672">&amp;</span>indices_to_score)<span style="color:#f92672">?</span>;
+
+    <span style="color:#75715e">// We implement argsort by zipping item indices
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// with their scores into tuples...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> predictions: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>
+        <span style="color:#f92672">=</span> indices_to_score.iter()
+        .zip(predictions)
+        .map(<span style="color:#f92672">|</span>(idx, score)<span style="color:#f92672">|</span> (idx, score))
+        .collect();
+
+    <span style="color:#75715e">// ...and sorting the result in descending order.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This is a little tricky for floats are they
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// are not always comparable (they could be NaN or Inf),
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// so we use partial sorting and fail the program
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// if non-finite values are encountered.
+</span><span style="color:#75715e"></span>    predictions
+        .sort_by(<span style="color:#f92672">|</span>(_, score_a), (_, score_b)<span style="color:#f92672">|</span>
+                 score_b.partial_cmp(score_a)
+                 .unwrap());
+
+    <span style="color:#75715e">// Finally, we get the names for the top 10 items.
+</span><span style="color:#75715e"></span>    Ok((<span style="color:#f92672">&amp;</span>predictions[..<span style="color:#ae81ff">10</span>])
+       .iter()
+       .map(<span style="color:#f92672">|</span>(idx, _)<span style="color:#f92672">|</span> id_to_title.get(idx).unwrap())
+       .cloned()
+       .collect())
+}
+</code></pre></div>
+<h2 id="putting-it-all-together">Putting it all together</h2>
+
+<p>Finally, we can write our <code>main</code> function. It&rsquo;ll look at the command line arguments and call either the model building or the prediction functions.</p>
+
+<p><a id="org970da27"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> args: Vec<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> std::env::args().skip(<span style="color:#ae81ff">1</span>).collect();
+
+    <span style="color:#66d9ef">if</span> args.is_empty() {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;First argument must be \
+</span><span style="color:#e6db74">                  one of &#39;fit&#39; or &#39;predict&#39;.&#34;</span>);
+        <span style="color:#66d9ef">return</span> ();
+    }
+
+    <span style="color:#75715e">// We need to convert a `String` into a
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `&amp;str` here. This is one of the few
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// cases where Rust&#39;s ergonomics still
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// have some way to go.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">match</span> <span style="color:#f92672">&amp;</span>args[<span style="color:#ae81ff">0</span>][..] {
+        <span style="color:#e6db74">&#34;fit&#34;</span> <span style="color:#f92672">=&gt;</span> main_build(),
+        <span style="color:#e6db74">&#34;predict&#34;</span> <span style="color:#f92672">=&gt;</span> {
+            <span style="color:#66d9ef">let</span> model <span style="color:#f92672">=</span> deserialize_model()
+                .expect(<span style="color:#e6db74">&#34;Unable to deserialize model.&#34;</span>);
+            <span style="color:#66d9ef">let</span> predictions <span style="color:#f92672">=</span> predict(<span style="color:#f92672">&amp;</span>args[<span style="color:#ae81ff">1</span>..], <span style="color:#f92672">&amp;</span>model)
+                .expect(<span style="color:#e6db74">&#34;Unable to get predictions&#34;</span>);
+            println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Predictions:&#34;</span>);
+            <span style="color:#66d9ef">for</span> prediction <span style="color:#66d9ef">in</span> predictions {
+                println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;    {}&#34;</span>, prediction);
+            }
+        },
+        _ <span style="color:#f92672">=&gt;</span> println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;First argument must be \
+</span><span style="color:#e6db74">                       one of &#39;fit&#39; or &#39;predict&#39;.&#34;</span>),
+    }
+}
+</code></pre></div>
+<p>What about the results? They look reasonable at first blush if you are a fan of the Harry Potter series:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">time cargo run --release -- predict <span style="color:#e6db74">&#34;Harry Potter and the Order of the Phoenix (Harry Potter, #5, Part 1)&#34;</span>
+  Finished release <span style="color:#f92672">[</span>optimized<span style="color:#f92672">]</span> target<span style="color:#f92672">(</span>s<span style="color:#f92672">)</span> in <span style="color:#ae81ff">0</span>.12s
+Predictions:
+    Harry Potter and the Order of the Phoenix <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#5, Part 1)
+</span><span style="color:#75715e"></span>    Harry Potter and the Prisoner of Azkaban <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#3)
+</span><span style="color:#75715e"></span>    Quidditch Through the Ages
+    Harry Potter and the Goblet of Fire <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#4)
+</span><span style="color:#75715e"></span>    Harry Potter and the Sorcerer<span style="color:#960050;background-color:#1e0010">&#39;</span>s Stone <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#1)
+</span><span style="color:#75715e"></span>    Harry Potter: Film Wizardry
+    The Harry Potter Collection <span style="color:#ae81ff">1</span>-4 <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#1-4)
+</span><span style="color:#75715e"></span>    Harry Potter and the Chamber of Secrets <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#2)
+</span><span style="color:#75715e"></span>    Harry Potter and the Deathly Hallows <span style="color:#f92672">(</span>Harry Potter, <span style="color:#75715e">#7)
+</span><span style="color:#75715e"></span>    Harry Potter and the Order of the Phoenix <span style="color:#f92672">(</span>Harry Potter, #5<span style="color:#f92672">)</span></code></pre></div>
+<p>If you prefer Faulkner, the results are relatively sensible too:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">time cargo run --release -- predict <span style="color:#e6db74">&#34;As I Lay Dying&#34;</span>
+Predictions:
+    As I Lay Dying
+    A Portrait of the Artist as a Young Man
+    The Sound and the Fury
+    Death of a Salesman
+    The Things They Carried
+    The Awakening
+    Invisible Man
+    A Separate Peace
+    The House on Mango Street
+    The Glass Menagerie</code></pre></div>
+<p>We&rsquo;ve got a working model. Of course, serving recommendations via a CLI tool is not very useful: ideally, we&rsquo;d have a web service that can serve these more widely. This, however, will have to wait for another blog post.</p>
+
+<h2 id="appendix">Appendix</h2>
+
+<p>The final result looks like this:</p>
+
+<h3 id="cargo-dot-toml">Cargo.toml</h3>
+
+<p><a id="org3d195ca"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">[package]
+name = &#34;goodbooks-recommender&#34;
+version = &#34;0.1.0&#34;
+authors = [&#34;Maciej Kula&#34;]
+
+[dependencies]
+reqwest = &#34;0.8.6&#34;
+failure = &#34;0.1.1&#34;
+
+# I&#39;ll mention the remaining dependencies later
+serde = &#34;1.0.0&#34;
+serde_derive = &#34;1.0.0&#34;
+serde_json = &#34;1.0.0&#34;
+csv = &#34;1.0.0&#34;
+sbr = &#34;0.4.0&#34;
+rand = &#34;0.5.4&#34;</code></pre></div>
+<h3 id="main-dot-rs">main.rs</h3>
+
+<p><a id="org02a6c2c"></a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> reqwest;
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> failure;
+
+<span style="color:#75715e">// Importing this allows us to autoderive
+</span><span style="color:#75715e">// the serialization traits.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#[macro_use]</span>
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> serde_derive;
+
+<span style="color:#75715e">// This is where we get the serde traits from.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> serde;
+
+<span style="color:#75715e">// An implementation of the serde encoders/decoders
+</span><span style="color:#75715e">// to and from a JSON. We&#39;ll need
+</span><span style="color:#75715e">// these later.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> serde_json;
+
+<span style="color:#75715e">#[derive(Debug, Serialize, Deserialize)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">WishlistEntry</span> {
+    user_id: <span style="color:#66d9ef">usize</span>,
+    book_id: <span style="color:#66d9ef">usize</span>,
+}
+
+
+<span style="color:#75715e">// Need to import a couple of things from
+</span><span style="color:#75715e">// the standard library
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">use</span> std::fs::File;
+<span style="color:#66d9ef">use</span> std::io::BufWriter;
+<span style="color:#66d9ef">use</span> std::path::Path;
+
+<span style="color:#e6db74">/// Download file from `url` and save it to `destination`.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">download</span>(url: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, destination: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>)
+            -&gt; Result<span style="color:#f92672">&lt;</span>(), failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#75715e">// Don&#39;t do anything if we already have the file.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> destination.exists() {
+        <span style="color:#66d9ef">return</span> Ok(())
+    }
+
+    <span style="color:#75715e">// Otherwise, create a new file.
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// Because each of the following operations
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// can fail (returns a result type), we follow
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// them with the `?` operator. If the result
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// is an error, it will exit from the function
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// early, propagating the error upwards; if
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the operation completed successfully, we get
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the result instead.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> file <span style="color:#f92672">=</span> File::create(destination)<span style="color:#f92672">?</span>;
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> writer <span style="color:#f92672">=</span> BufWriter::new(file);
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> response <span style="color:#f92672">=</span> reqwest::get(url)<span style="color:#f92672">?</span>;
+    response.copy_to(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> writer)<span style="color:#f92672">?</span>;
+
+    Ok(())
+}
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> csv;
+
+<span style="color:#e6db74">/// Deserialize from file at `path` into a vector of
+</span><span style="color:#e6db74">/// `WishlistEntry`.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_ratings</span>(path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>)
+               -&gt; Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>WishlistEntry<span style="color:#f92672">&gt;</span>, failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> reader <span style="color:#f92672">=</span> csv::Reader::from_path(path)<span style="color:#f92672">?</span>;
+
+    <span style="color:#75715e">// We specify the type of the deserialized entity
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// via a type annotation. Otherwise, the compiler has
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// no way of knowing what sort of thing we want to
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// deserialize!
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// We also do a further trick where instead of deserializing
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// into a vector of results, we deserialize into a result with
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// a vector.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> entries: Vec<span style="color:#f92672">&lt;</span>WishlistEntry<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> reader.deserialize()
+        .collect::<span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>, _<span style="color:#f92672">&gt;&gt;</span>()<span style="color:#f92672">?</span>;
+
+    Ok(entries)
+}
+<span style="color:#75715e">#[derive(Debug, Deserialize, Serialize)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Book</span> {
+    book_id: <span style="color:#66d9ef">usize</span>,
+    title: String
+}
+
+<span style="color:#75715e">// We&#39;ll use the stdlib hashmap for the mapping.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">use</span> std::collections::HashMap;
+
+<span style="color:#e6db74">/// Deserialize from file at `path` into the book
+</span><span style="color:#e6db74">/// mappings.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_books</span>(path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>)
+   -&gt; Result<span style="color:#f92672">&lt;</span>(HashMap<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span>, String<span style="color:#f92672">&gt;</span>,
+              HashMap<span style="color:#f92672">&lt;</span>String, <span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>), failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> reader <span style="color:#f92672">=</span> csv::Reader::from_path(path)<span style="color:#f92672">?</span>;
+
+    <span style="color:#66d9ef">let</span> entries: Vec<span style="color:#f92672">&lt;</span>Book<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> reader.deserialize::<span style="color:#f92672">&lt;</span>Book<span style="color:#f92672">&gt;</span>()
+        .collect::<span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>, _<span style="color:#f92672">&gt;&gt;</span>()<span style="color:#f92672">?</span>;
+
+    <span style="color:#75715e">// We can simply iterate over the entries and collect
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// them into a different data structure. This is not
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the most efficient solution but it will do for now.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> id_to_title: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span>, String<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> entries
+        .iter()
+        .map(<span style="color:#f92672">|</span>book<span style="color:#f92672">|</span> (book.book_id, book.title.clone()))
+        .collect();
+    <span style="color:#66d9ef">let</span> title_to_id: <span style="color:#a6e22e">HashMap</span><span style="color:#f92672">&lt;</span>String, <span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> entries
+        .iter()
+        .map(<span style="color:#f92672">|</span>book<span style="color:#f92672">|</span> (book.title.clone(), book.book_id))
+        .collect();
+
+    Ok((id_to_title, title_to_id))
+}
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> sbr;
+
+<span style="color:#66d9ef">use</span> sbr::models::ewma::{Hyperparameters, ImplicitEWMAModel};
+<span style="color:#66d9ef">use</span> sbr::models::{Loss, Optimizer};
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">build_model</span>(num_items: <span style="color:#66d9ef">usize</span>) -&gt; <span style="color:#a6e22e">ImplicitEWMAModel</span> {
+    <span style="color:#66d9ef">let</span> hyperparameters <span style="color:#f92672">=</span> Hyperparameters::new(num_items, <span style="color:#ae81ff">128</span>)
+        .embedding_dim(<span style="color:#ae81ff">32</span>)
+        .learning_rate(<span style="color:#ae81ff">0.16</span>)
+        .l2_penalty(<span style="color:#ae81ff">0.0004</span>)
+        .loss(Loss::WARP)
+        .optimizer(Optimizer::Adagrad)
+        .num_epochs(<span style="color:#ae81ff">10</span>)
+        .num_threads(<span style="color:#ae81ff">1</span>);
+
+    hyperparameters.build()
+}
+<span style="color:#66d9ef">use</span> sbr::data::{Interaction, Interactions};
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">build_interactions</span>(data: <span style="color:#66d9ef">&amp;</span>[WishlistEntry]) -&gt; <span style="color:#a6e22e">Interactions</span> {
+    <span style="color:#75715e">// If the collection is empty, `max` doesn&#39;t exist. This
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// is why we get an Option back, which we then unwrap.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> num_users <span style="color:#f92672">=</span> data
+        .iter()
+        .map(<span style="color:#f92672">|</span>x<span style="color:#f92672">|</span> x.user_id)
+        .max()
+        .unwrap() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#66d9ef">let</span> num_items <span style="color:#f92672">=</span> data
+        .iter()
+        .map(<span style="color:#f92672">|</span>x<span style="color:#f92672">|</span> x.book_id)
+        .max()
+        .unwrap() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> interactions <span style="color:#f92672">=</span> Interactions::new(num_users,
+                                             num_items);
+
+    <span style="color:#75715e">// There are no timestamps in the interaction data, but
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// we make use of the fact that they are sorted by time.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (idx, datum) <span style="color:#66d9ef">in</span> data.iter().enumerate() {
+        interactions.push(
+            Interaction::new(datum.user_id,
+                             datum.book_id,
+                             idx)
+        );
+    }
+
+    interactions
+}
+<span style="color:#75715e">// We need to import the rand crate.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> rand;
+<span style="color:#66d9ef">use</span> rand::SeedableRng;
+
+<span style="color:#75715e">// We perform a split where the train and test
+</span><span style="color:#75715e">// sets are disjoint on the user dimension: no
+</span><span style="color:#75715e">// single user is in both.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">use</span> sbr::data::user_based_split;
+<span style="color:#66d9ef">use</span> sbr::OnlineRankingModel;
+
+<span style="color:#66d9ef">use</span> sbr::evaluation::mrr_score;
+
+<span style="color:#e6db74">/// Fit the model.
+</span><span style="color:#e6db74">///
+</span><span style="color:#e6db74">/// If successful, return the MRR on the test set.
+</span><span style="color:#e6db74">/// Otherwise, return an error.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">fit</span>(model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> ImplicitEWMAModel,
+       data: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Interactions</span>)
+       -&gt; Result<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">f32</span>, failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#75715e">// Use a fixed seed for repeatable results.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> rng <span style="color:#f92672">=</span> rand::XorShiftRng::from_seed([<span style="color:#ae81ff">42</span>; <span style="color:#ae81ff">16</span>]);
+
+    <span style="color:#66d9ef">let</span> (train, test) <span style="color:#f92672">=</span> user_based_split(data,
+                                         <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> rng,
+                                         <span style="color:#ae81ff">0.2</span>);
+
+    model.fit(<span style="color:#f92672">&amp;</span>train.to_compressed())<span style="color:#f92672">?</span>;
+
+    <span style="color:#66d9ef">let</span> mrr <span style="color:#f92672">=</span> mrr_score(model, <span style="color:#f92672">&amp;</span>test.to_compressed())<span style="color:#f92672">?</span>;
+
+    Ok(mrr)
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">serialize_model</span>(model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">ImplicitEWMAModel</span>,
+                   path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>) -&gt; Result<span style="color:#f92672">&lt;</span>(), failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> file <span style="color:#f92672">=</span> File::create(path)<span style="color:#f92672">?</span>;
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> writer <span style="color:#f92672">=</span> BufWriter::new(file);
+
+    Ok(serde_json::to_writer(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> writer, model)<span style="color:#f92672">?</span>)
+}
+<span style="color:#e6db74">/// Download training data and build a model.
+</span><span style="color:#e6db74">///
+</span><span style="color:#e6db74">/// We&#39;ll use this function to power the `fit`
+</span><span style="color:#e6db74">/// subcommand of our command line tool.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main_build</span>() {
+
+    <span style="color:#66d9ef">let</span> ratings_path <span style="color:#f92672">=</span> Path::new(<span style="color:#e6db74">&#34;ratings.csv&#34;</span>);
+    <span style="color:#66d9ef">let</span> books_path <span style="color:#f92672">=</span> Path::new(<span style="color:#e6db74">&#34;books.csv&#34;</span>);
+    <span style="color:#66d9ef">let</span> model_path <span style="color:#f92672">=</span> Path::new(<span style="color:#e6db74">&#34;model.json&#34;</span>);
+
+    <span style="color:#75715e">// Exit early if we already have a model.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> model_path.exists() {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Model already fitted.&#34;</span>);
+        <span style="color:#66d9ef">return</span> ();
+    }
+
+    download_data(ratings_path, books_path);
+
+    <span style="color:#66d9ef">let</span> ratings <span style="color:#f92672">=</span> deserialize_ratings(ratings_path).unwrap();
+    <span style="color:#66d9ef">let</span> (id_to_title,
+         title_to_id) <span style="color:#f92672">=</span> deserialize_books(books_path).unwrap();
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Deserialized {} ratings.&#34;</span>, ratings.len());
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Deserialized {} books.&#34;</span>, id_to_title.len());
+
+    <span style="color:#66d9ef">let</span> interactions <span style="color:#f92672">=</span> build_interactions(<span style="color:#f92672">&amp;</span>ratings);
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> model <span style="color:#f92672">=</span> build_model(interactions.num_items());
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Fitting...&#34;</span>);
+    <span style="color:#66d9ef">let</span> mrr <span style="color:#f92672">=</span> fit(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> model, <span style="color:#f92672">&amp;</span>interactions)
+        .expect(<span style="color:#e6db74">&#34;Unable to fit model.&#34;</span>);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Fit model with MRR of {:.2}&#34;</span>, mrr);
+
+    serialize_model(<span style="color:#f92672">&amp;</span>model, <span style="color:#f92672">&amp;</span>model_path)
+        .expect(<span style="color:#e6db74">&#34;Unable to serialize model.&#34;</span>);
+}
+<span style="color:#66d9ef">use</span> std::io::BufReader;
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_model</span>() -&gt; Result<span style="color:#f92672">&lt;</span>ImplicitEWMAModel,
+                                 failure::Error<span style="color:#f92672">&gt;</span> {
+
+    <span style="color:#66d9ef">let</span> file <span style="color:#f92672">=</span> File::open(<span style="color:#e6db74">&#34;model.json&#34;</span>)<span style="color:#f92672">?</span>;
+    <span style="color:#66d9ef">let</span> reader <span style="color:#f92672">=</span> BufReader::new(file);
+
+    <span style="color:#66d9ef">let</span> model <span style="color:#f92672">=</span> serde_json::from_reader(reader)<span style="color:#f92672">?</span>;
+
+    Ok(model)
+}
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">predict</span>(input_titles: <span style="color:#66d9ef">&amp;</span>[String],
+           model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">ImplicitEWMAModel</span>)
+           -&gt; Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span>, failure::Error<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">let</span> (id_to_title,
+         title_to_id) <span style="color:#f92672">=</span> deserialize_books(
+        <span style="color:#f92672">&amp;</span>Path::new(<span style="color:#e6db74">&#34;books.csv&#34;</span>)
+    ).unwrap();
+
+    <span style="color:#75715e">// Let&#39;s first check if the inputs are valid.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> title <span style="color:#66d9ef">in</span> input_titles {
+        <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>title_to_id.contains_key(title) {
+            println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;No such title, ignoring: {}&#34;</span>, title);
+        }
+    }
+
+    <span style="color:#75715e">// Map the titles to indices.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> input_indices: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> input_titles
+        .iter()
+        .filter_map(<span style="color:#f92672">|</span>title<span style="color:#f92672">|</span> title_to_id.get(title))
+        .cloned()
+        .collect();
+    <span style="color:#66d9ef">let</span> indices_to_score: Vec<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span>
+        (<span style="color:#ae81ff">0</span>..id_to_title.len()).collect();
+
+    <span style="color:#75715e">// Get the user representation.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> user <span style="color:#f92672">=</span> model.user_representation(<span style="color:#f92672">&amp;</span>input_indices)<span style="color:#f92672">?</span>;
+    <span style="color:#75715e">// Get the actual predictions.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> predictions <span style="color:#f92672">=</span> model.predict(<span style="color:#f92672">&amp;</span>user, <span style="color:#f92672">&amp;</span>indices_to_score)<span style="color:#f92672">?</span>;
+
+    <span style="color:#75715e">// We implement argsort by zipping item indices
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// with their scores into tuples...
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> predictions: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>
+        <span style="color:#f92672">=</span> indices_to_score.iter()
+        .zip(predictions)
+        .map(<span style="color:#f92672">|</span>(idx, score)<span style="color:#f92672">|</span> (idx, score))
+        .collect();
+
+    <span style="color:#75715e">// ...and sorting the result in descending order.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This is a little tricky for floats are they
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// are not always comparable (they could be NaN or Inf),
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// so we use partial sorting and fail the program
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// if non-finite values are encountered.
+</span><span style="color:#75715e"></span>    predictions
+        .sort_by(<span style="color:#f92672">|</span>(_, score_a), (_, score_b)<span style="color:#f92672">|</span>
+                 score_b.partial_cmp(score_a)
+                 .unwrap());
+
+    <span style="color:#75715e">// Finally, we get the names for the top 10 items.
+</span><span style="color:#75715e"></span>    Ok((<span style="color:#f92672">&amp;</span>predictions[..<span style="color:#ae81ff">10</span>])
+       .iter()
+       .map(<span style="color:#f92672">|</span>(idx, _)<span style="color:#f92672">|</span> id_to_title.get(idx).unwrap())
+       .cloned()
+       .collect())
+}
+
+<span style="color:#e6db74">/// Download ratings and metadata both.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">download_data</span>(ratings_path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>, books_path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>) {
+    <span style="color:#66d9ef">let</span> ratings_url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://github.com/zygmuntz/\
+</span><span style="color:#e6db74">                       goodbooks-10k/raw/master/ratings.csv&#34;</span>;
+    <span style="color:#66d9ef">let</span> books_url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://github.com/zygmuntz/\
+</span><span style="color:#e6db74">                     goodbooks-10k/raw/master/books.csv&#34;</span>;
+
+    download(<span style="color:#f92672">&amp;</span>ratings_url,
+             ratings_path).expect(<span style="color:#e6db74">&#34;Could not download ratings&#34;</span>);
+    download(<span style="color:#f92672">&amp;</span>books_url,
+             books_path).expect(<span style="color:#e6db74">&#34;Could not download metadata&#34;</span>);
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> args: Vec<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> std::env::args().skip(<span style="color:#ae81ff">1</span>).collect();
+
+    <span style="color:#66d9ef">if</span> args.is_empty() {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;First argument must be \
+</span><span style="color:#e6db74">                  one of &#39;fit&#39; or &#39;predict&#39;.&#34;</span>);
+        <span style="color:#66d9ef">return</span> ();
+    }
+
+    <span style="color:#75715e">// We need to convert a `String` into a
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `&amp;str` here. This is one of the few
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// cases where Rust&#39;s ergonomics still
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// have some way to go.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">match</span> <span style="color:#f92672">&amp;</span>args[<span style="color:#ae81ff">0</span>][..] {
+        <span style="color:#e6db74">&#34;fit&#34;</span> <span style="color:#f92672">=&gt;</span> main_build(),
+        <span style="color:#e6db74">&#34;predict&#34;</span> <span style="color:#f92672">=&gt;</span> {
+            <span style="color:#66d9ef">let</span> model <span style="color:#f92672">=</span> deserialize_model()
+                .expect(<span style="color:#e6db74">&#34;Unable to deserialize model.&#34;</span>);
+            <span style="color:#66d9ef">let</span> predictions <span style="color:#f92672">=</span> predict(<span style="color:#f92672">&amp;</span>args[<span style="color:#ae81ff">1</span>..], <span style="color:#f92672">&amp;</span>model)
+                .expect(<span style="color:#e6db74">&#34;Unable to get predictions&#34;</span>);
+            println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Predictions:&#34;</span>);
+            <span style="color:#66d9ef">for</span> prediction <span style="color:#66d9ef">in</span> predictions {
+                println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;    {}&#34;</span>, prediction);
+            }
+        },
+        _ <span style="color:#f92672">=&gt;</span> println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;First argument must be \
+</span><span style="color:#e6db74">                       one of &#39;fit&#39; or &#39;predict&#39;.&#34;</span>),
+    }
+}
+</code></pre></div></div>
+</main>
+ 
+
+
+
+
+
+
+<div class="tl fixed list-pages lh-copy" id="contents-list"></div>
+
+
+
+<div class="pagination tc tr-l db fixed-l bottom-2-l right-2-l mb3 mb0-l">
+  
+<a id="scroll-to-top" class="f6 o-0 link br2 ph2 pv1 mb1 bg-main-color pointer" onclick="topFunction()" style="color: #fff; visibility: hidden; display: none; transition: opacity .5s, visibility .5s;" title="back to top">back to top</a>
+<br>
+  <p class="mb0 mt2">
+  <a href="https://maciejkula.github.io/2018/07/18/building-an-autodifferentiation-library/">prev post</a>
+  
+  </p>
+</div>
+
+  <footer class="content-width mt0 mt5-l mb4 f6 center ph3 gray tc tl-l">
+
+  
+  
+  <div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "maciejkula" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  
+  
+
+  <hr class="dn db-l ml0-l gray w3"><br>
+  Powered by <a href="https://gohugo.io/" target="_blank" class="link gray dim">Hugo</a>, based on the <a href="https://github.com/lingxz/er" target="_blank" class="link gray dim">Er</a> theme. <br>
+  
+</footer>
+
+  
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.1.1/tocbot.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.1.1/tocbot.css">
+<style>.is-active-link::before { background-color: var(--secondary-color); }</style>
+
+
+
+
+<script type="text/javascript">
+var prevScrollpos = window.pageYOffset;
+window.onscroll = function() {
+  var currentScrollPos = window.pageYOffset;
+
+  
+
+  
+  if (document.body.scrollTop > 1000 || document.documentElement.scrollTop > 1000) {
+      document.getElementById("scroll-to-top").style.display = "inline";
+      document.getElementById("scroll-to-top").style.visibility = "visible";
+      document.getElementById("scroll-to-top").style.opacity = "1";
+  } else {
+      document.getElementById("scroll-to-top").style.visibility = "hidden";
+      document.getElementById("scroll-to-top").style.opacity = "0";
+  }
+  
+  prevScrollpos = currentScrollPos;
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0; 
+  document.documentElement.scrollTop = 0; 
+}
+
+
+
+
+
+
+if (document.getElementById("contents-list") !== null && document.getElementsByClassName("post-content").length !== 0) { 
+  tocbot.init({
+    
+    tocSelector: '#contents-list',
+    
+    contentSelector: '.post-content',
+    
+    headingSelector: 'h1, h2, h3',
+  });
+}
+
+
+</script>
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css">
+<script>
+  renderMathInElement(document.body,
+    {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false},
+            {left: "\\(", right: "\\)", display: false},
+            {left: "\\[", right: "\\]", display: true}
+        ]
+    }
+  );
+
+  var inlineMathArray = document.querySelectorAll("script[type='math/tex']");
+  for (var i = 0; i < inlineMathArray.length; i++) {
+    var inlineMath = inlineMathArray[i];
+    var tex = inlineMath.innerText || inlineMath.textContent;
+    var replaced = document.createElement("span");
+    replaced.innerHTML = katex.renderToString(tex, {displayMode: false});
+    inlineMath.parentNode.replaceChild(replaced, inlineMath);
+  }
+
+  var displayMathArray = document.querySelectorAll("script[type='math/tex; mode=display']");
+  for (var i = 0; i < displayMathArray.length; i++) {
+    var displayMath = displayMathArray[i];
+    var tex = displayMath.innerHTML;
+    var replaced = document.createElement("span");
+    replaced.innerHTML = katex.renderToString(tex.replace(/%.*/g, ''), {displayMode: true});
+    displayMath.parentNode.replaceChild(replaced, displayMath);
+  }
+</script>
+
+
+</body>
+</html>
