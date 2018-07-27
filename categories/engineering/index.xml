@@ -17,7 +17,7 @@
       <pubDate>Fri, 27 Jul 2018 09:17:00 -0700</pubDate>
       
       <guid>https://maciejkula.github.io/2018/07/27/recommending-books-with-rust/</guid>
-      <description>In this post, we&amp;rsquo;re going to build a sequence-based recommender system in Rust: a sytem that accepts a person&amp;rsquo;s reading history as input, and outputs recommendations on what to read next.
+      <description>In this post, we&amp;rsquo;re going to build a sequence-based recommender system in Rust: a system that accepts a person&amp;rsquo;s reading history as input, and outputs recommendations on what to read next.
 Building systems like this &amp;ndash; like much of machine learning and data science &amp;ndash; is normally the province of Python. The combination of numpy, pandas, and other libraries that build on them makes doing data science in Python a breeze.</description>
     </item>
     
