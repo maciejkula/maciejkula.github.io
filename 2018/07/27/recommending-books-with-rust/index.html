@@ -17,7 +17,7 @@ Building systems like this &ndash; like much of machine learning and data scienc
 
 <meta property="article:published_time" content="2018-07-27T09:17:00-07:00"/>
 
-<meta property="article:modified_time" content="2018-07-27T10:03:05-07:00"/>
+<meta property="article:modified_time" content="2018-07-29T13:29:14-07:00"/>
 
 
 
@@ -123,7 +123,7 @@ if (!doNotTrack) {
 
 <p>With its help, we can start defining our download function:</p>
 
-<p><a id="org24456a7"></a></p>
+<p><a id="org5315f35"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Make sure we have our third-party dependencies.
 </span><span style="color:#75715e">// (This is going away in future Rust, since it
 </span><span style="color:#75715e">// simply duplicates what&#39;s already in Cargo.toml.)
@@ -168,7 +168,7 @@ if (!doNotTrack) {
 </code></pre></div>
 <p>With this, we can write a short function that downloads both the ratings file and a file that contains metadata on the books from the dataset:</p>
 
-<p><a id="org8b14155"></a></p>
+<p><a id="org41b685e"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#e6db74">/// Download ratings and metadata both.
 </span><span style="color:#e6db74"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">download_data</span>(ratings_path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>, books_path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>) {
     <span style="color:#66d9ef">let</span> ratings_url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://github.com/zygmuntz/\
@@ -195,7 +195,7 @@ if (!doNotTrack) {
 
 <p>The heart of Rust&rsquo;s serialization ecosystem lies in the <a href="https://serde.rs/"><code>serde</code> crate</a>. It provides traits that allow structs to be seamlessly serialized and deserialized across a variety for formats. We&rsquo;ll derive those on a <code>WishlistEntry</code> struct to be able to read it from the CSV file:</p>
 
-<p><a id="org9aff855"></a></p>
+<p><a id="org77516c4"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Importing this allows us to autoderive
 </span><span style="color:#75715e">// the serialization traits.
 </span><span style="color:#75715e"></span><span style="color:#75715e">#[macro_use]</span>
@@ -217,7 +217,7 @@ if (!doNotTrack) {
 </code></pre></div>
 <p>After importing the <code>csv</code> crate we&rsquo;re ready to write the deserialize function:</p>
 
-<p><a id="orgf1efede"></a></p>
+<p><a id="orge2d3458"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> csv;
 
 <span style="color:#e6db74">/// Deserialize from file at `path` into a vector of
@@ -234,7 +234,7 @@ if (!doNotTrack) {
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// We also do a further trick where instead of deserializing
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// into a vector of results, we deserialize into a result with
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// a vector.
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> entries: Vec<span style="color:#f92672">&lt;</span>WishlistEntry<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> reader.deserialize()
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> entries <span style="color:#f92672">=</span> reader.deserialize()
         .collect::<span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>, _<span style="color:#f92672">&gt;&gt;</span>()<span style="color:#f92672">?</span>;
 
     Ok(entries)
@@ -244,7 +244,7 @@ if (!doNotTrack) {
 
 <p>As before, we define a struct and a corresponding deserialize function. This time, we are going to return two mappings instead of a vector: the first mapping book ids to book titles, the second book titles to book ids.</p>
 
-<p><a id="orgdf0859a"></a></p>
+<p><a id="org978d92a"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[derive(Debug, Deserialize, Serialize)]</span>
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Book</span> {
     book_id: <span style="color:#66d9ef">usize</span>,
@@ -305,7 +305,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 
 <p>The first thing we need to do is to write a function that will set up all the hyperparameters of the model:</p>
 
-<p><a id="org1f6d26b"></a></p>
+<p><a id="org1dfcb35"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> sbr;
 
 <span style="color:#66d9ef">use</span> sbr::models::ewma::{Hyperparameters, ImplicitEWMAModel};
@@ -328,7 +328,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 
 <p>The second is to convert the <code>WishlistEntry</code> objects into <code>sbr</code>&rsquo;s <a href="https://docs.rs/sbr/0.4.0/sbr/data/struct.Interactions.html"><code>Interaction</code></a> objects:</p>
 
-<p><a id="org77201b1"></a></p>
+<p><a id="orgc93a23e"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> sbr::data::{Interaction, Interactions};
 
 <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">build_interactions</span>(data: <span style="color:#66d9ef">&amp;</span>[WishlistEntry]) -&gt; <span style="color:#a6e22e">Interactions</span> {
@@ -365,7 +365,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 
 <p>The model fitting itself is easy: we&rsquo;ve set up the data and hyperparameters, and all that is left is to fit the model, making sure we have a train-test split to evaluate performance:</p>
 
-<p><a id="org7a8b5f3"></a></p>
+<p><a id="orgdcd7eb5"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// We need to import the rand crate.
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">crate</span> rand;
 <span style="color:#66d9ef">use</span> rand::SeedableRng;
@@ -404,7 +404,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 
 <p>Once we have the model, we&rsquo;ll want to save it for future use. Again, we&rsquo;ll use the <code>serde</code> library to do so:</p>
 
-<p><a id="orgab53a45"></a></p>
+<p><a id="orgc3b4f06"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">serialize_model</span>(model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">ImplicitEWMAModel</span>,
                    path: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Path</span>) -&gt; Result<span style="color:#f92672">&lt;</span>(), failure::Error<span style="color:#f92672">&gt;</span> {
 
@@ -416,7 +416,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 </code></pre></div>
 <p>Wiring all the bits together gives</p>
 
-<p><a id="orgf9e10f7"></a></p>
+<p><a id="orgb633c5e"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#e6db74">/// Download training data and build a model.
 </span><span style="color:#e6db74">///
 </span><span style="color:#e6db74">/// We&#39;ll use this function to power the `fit`
@@ -460,7 +460,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 
 <p>For the first, the following should suffice:</p>
 
-<p><a id="org2bfd1bf"></a></p>
+<p><a id="orgdcff89c"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> std::io::BufReader;
 
 <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deserialize_model</span>() -&gt; Result<span style="color:#f92672">&lt;</span>ImplicitEWMAModel,
@@ -476,7 +476,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 </code></pre></div>
 <p>For the second, we&rsquo;ll accept a sequence of book titles as input, translate to indices, get predictions, and translate back to book titles.</p>
 
-<p><a id="orgfb83dd4"></a></p>
+<p><a id="org3dd1cb2"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">predict</span>(input_titles: <span style="color:#66d9ef">&amp;</span>[String],
            model: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">ImplicitEWMAModel</span>)
            -&gt; Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span>, failure::Error<span style="color:#f92672">&gt;</span> {
@@ -536,7 +536,7 @@ where \(\sigma(\alpha)\) is the exponential averaging weight, rescaled to lie be
 
 <p>Finally, we can write our <code>main</code> function. It&rsquo;ll look at the command line arguments and call either the model building or the prediction functions.</p>
 
-<p><a id="orgce807e4"></a></p>
+<p><a id="org2a8ef67"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
     <span style="color:#66d9ef">let</span> args: Vec<span style="color:#f92672">&lt;</span>String<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> std::env::args().skip(<span style="color:#ae81ff">1</span>).collect();
 
@@ -602,7 +602,7 @@ Predictions:
 
 <h3 id="cargo-dot-toml">Cargo.toml</h3>
 
-<p><a id="orgac5f7c1"></a></p>
+<p><a id="orgbdfea42"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">[package]
 name = &#34;goodbooks-recommender&#34;
 version = &#34;0.1.0&#34;
@@ -621,7 +621,7 @@ sbr = &#34;0.4.0&#34;
 rand = &#34;0.5.4&#34;</code></pre></div>
 <h3 id="main-dot-rs">main.rs</h3>
 
-<p><a id="orgd554dfc"></a></p>
+<p><a id="org51b7eea"></a></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Importing this allows us to autoderive
 </span><span style="color:#75715e">// the serialization traits.
 </span><span style="color:#75715e"></span><span style="color:#75715e">#[macro_use]</span>
@@ -698,7 +698,7 @@ rand = &#34;0.5.4&#34;</code></pre></div>
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// We also do a further trick where instead of deserializing
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// into a vector of results, we deserialize into a result with
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// a vector.
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> entries: Vec<span style="color:#f92672">&lt;</span>WishlistEntry<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> reader.deserialize()
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> entries <span style="color:#f92672">=</span> reader.deserialize()
         .collect::<span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span>, _<span style="color:#f92672">&gt;&gt;</span>()<span style="color:#f92672">?</span>;
 
     Ok(entries)
